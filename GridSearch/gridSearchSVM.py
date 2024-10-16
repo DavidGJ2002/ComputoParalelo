@@ -25,8 +25,8 @@ def nivelacion_cargas(D, n_p):
 
 # Parámetros para SVM
 param_grid_svm = {
-    'C': [0.1, 1, 10],
-    'kernel': ['linear', 'rbf', 'poly'],
+    'C': [0.1, 1],
+    'kernel': ['linear', 'rbf'],
     'gamma': ['scale', 'auto']
 }
 
@@ -46,8 +46,8 @@ def evaluate_set(hyperparameter_set, lock):
     """
     # Cargar MNIST
     mnist = fetch_openml('mnist_784', parser='auto')
-    X = mnist.data[:20000]
-    y = mnist.target[:20000]
+    X = mnist.data[:10000]
+    y = mnist.target[:10000]
 
     # Convertir las etiquetas a enteros
     y = y.astype(int)
