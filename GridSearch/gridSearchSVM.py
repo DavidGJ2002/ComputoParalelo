@@ -2,7 +2,7 @@ import itertools
 import multiprocess
 import time 
 import numpy as np
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from sklearn.datasets import fetch_openml
@@ -23,26 +23,26 @@ def nivelacion_cargas(D, n_p):
         out[i].append(n_D[i])
     return out
 
-# Parámetros para KNN
-param_grid_knn = {
-    'n_neighbors': [2, 3, 4],
-    'weights': ['uniform', 'distance'],
-    'metric': ['euclidean', 'manhattan']
+# Parámetros para SVM
+param_grid_svm = {
+    'C': [0.1, 1, 10],
+    'kernel': ['linear', 'rbf', 'poly'],
+    'gamma': ['scale', 'auto']
 }
 
 # Generar combinaciones para KNN
-keys_knn, values_knn = zip(*param_grid_knn.items())
-combinations_knn = [dict(zip(keys_knn, v)) for v in itertools.product(*values_knn)]
+keys_svm, values_svm = zip(*param_grid_svm.items())
+combinations_svm = [dict(zip(keys_svm, v)) for v in itertools.product(*values_svm)]
 
 # Función a paralelizar
 def evaluate_set(hyperparameter_set, lock):
     import numpy as np
-    from sklearn.neighbors import KNeighborsClassifier
+    from sklearn.svm import SVC
     from sklearn.model_selection import train_test_split
     from sklearn.metrics import accuracy_score
     from sklearn.datasets import fetch_openml
     """
-    Evaluate a set of hyperparameters for KNN
+    Evaluate a set of hyperparameters for SVM
     """
     # Cargar MNIST
     mnist = fetch_openml('mnist_784', parser='auto')
@@ -59,9 +59,11 @@ def evaluate_set(hyperparameter_set, lock):
     # Particionar el conjunto de datos en 80-20
     X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.20)
 
+    timeI = time.perf_counter()
+    
     for s in hyperparameter_set:
-        clf = KNeighborsClassifier()
-        clf.set_params(n_neighbors=s['n_neighbors'], weights=s['weights'], metric=s['metric'])
+        clf = SVC()
+        clf.set_params(C=s['C'], kernel=s['kernel'], gamma=s['gamma'])
         clf.fit(X_train, y_train)
         y_pred = clf.predict(X_test)
         
@@ -70,10 +72,13 @@ def evaluate_set(hyperparameter_set, lock):
         print('Accuracy en el proceso:', accuracy_score(y_test, y_pred))
         lock.release()
 
+    timeT = time.perf_counter() - timeI
+    print(f'Tiempo transcurrido: {timeT} segundos')
+
 if __name__ == '__main__':
     threads = []
     N_THREADS = 4
-    splits = nivelacion_cargas(combinations_knn, N_THREADS)
+    splits = nivelacion_cargas(combinations_svm, N_THREADS)
     lock = multiprocess.Lock()
     
     for i in range(N_THREADS):
